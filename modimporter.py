@@ -1,5 +1,6 @@
 # Mod Importer for SuperGiant Games' Games
 
+import argparse
 import os
 from collections import defaultdict
 from collections import deque

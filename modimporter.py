@@ -24,6 +24,8 @@ except ModuleNotFoundError:
 
 ## Global Settings
 
+clean_only = False #uninstall option, ignores mod folder
+
 game_aliases = {"Resources":"Hades"} #alias for temporary mac support
 
 logging.basicConfig(filename="modimporter.log.txt",filemode='w')
@@ -635,6 +637,10 @@ def start():
     print("Cleaning edits... (if there are issues validate/reinstall files)\n")
     Path(bakdir).mkdir(parents=True, exist_ok=True)
     cleanup()
+
+    if clean_only:
+        print( "\nFinished cleaning, skipping edits." )
+        return
     
     print("\nReading mod files...\n")
     Path(modsdir).mkdir(parents=True, exist_ok=True)
@@ -653,9 +659,12 @@ def start():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--game', '-g', choices=[game for game in default_to])
+    parser.add_argument( '--game', '-g', choices=[game for game in default_to], help="select game mode" )
+    parser.add_argument( '--clean', '-c', action='store_true', help="clean only (uninstall mods)" )
     args = parser.parse_args()
     game = args.game or game
+    if args.clean is not None:
+        clean_only = args.clean
     try:
         start()
     except Exception as e:
@@ -664,4 +673,4 @@ if __name__ == '__main__':
         logging.getLogger("MainExceptions").exception(e)
         input("Press any key to see the error...")
         raise RuntimeError("Encountered uncaught exception during program") from e
-    input("Press any key to end program...")
+    input("Press ENTER/RETURN to end program...")

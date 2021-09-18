@@ -3,3 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# PyInstaller
+build/
+dist/
+*.spec

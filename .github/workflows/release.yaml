@@ -1,0 +1,151 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag / Release name (leave empty for dry-run)"
+        required: false
+
+env:
+  pyinstaller-version: "4.0"
+  name: modimporter
+  artifacts-content-type: application/zip
+
+jobs:
+  tag-and-release:
+    name: Tag and create release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.release.outputs.upload_url }}
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+
+      - name: Tag
+        if: github.event.inputs.tag
+        run: |
+          git tag ${{ github.event.inputs.tag }}
+          git push origin --tags
+
+      - name: Create release
+        if: github.event.inputs.tag
+        id: release
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
+        with:
+          release_name: ${{ github.event.inputs.tag }}
+          tag_name: ${{ github.event.inputs.tag }}
+          body_path: ${{ env.release-notes }}
+          commitish: main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  archive-and-upload-python-artifacts:
+    name: Archive and upload Python artifacts
+    needs: tag-and-release
+    runs-on: ubuntu-latest
+    env:
+      artifacts-python: modimporter-python.zip
+      license: LICENSE
+      readme: README.md
+      sjson: sjson
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+        with:
+          ref: ${{ github.event.inputs.tag || github.sha }}
+          submodules: true
+
+      - name: Consolidate Python artifacts in a zip
+        run: |
+          rm -r ${{ env.sjson }}/.git
+          zip ${{ env.artifacts-python }} -r ${{ env.name }}.py ${{ env.sjson }} ${{ env.license }} ${{ env.readme }}
+
+      - name: Upload artifacts to workflow
+        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        with:
+          name: ${{ env.artifacts-python }}
+          path: ${{ env.artifacts-python }}
+          retention-days: 1
+
+      - name: Upload artifacts to release
+        if: needs.tag-and-release.outputs.upload_url
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5
+        with:
+          upload_url: ${{ needs.tag-and-release.outputs.upload_url }}
+          asset_path: ${{ env.artifacts-python }}
+          asset_name: ${{ env.artifacts-python }}
+          asset_content_type: ${{ env.artifacts-content-type }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload-binaries:
+    name: Build and upload binaries
+    needs: tag-and-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            pip-cache-path: ~\AppData\Local\pip\Cache
+            artifacts: modimporter-windows.zip
+          - os: macos-latest
+            pip-cache-path: ~/Library/Caches/pip
+            artifacts: modimporter-macos.zip
+          - os: ubuntu-latest
+            pip-cache-path: ~/.cache/pip
+            artifacts: modimporter-linux.zip
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+        with:
+          ref: ${{ github.event.inputs.tag || github.sha }}
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@dc73133d4da04e56a135ae2246682783cc7c7cb6
+        with:
+          python-version: 3.9
+
+      - name: Retrieve pip dependencies from cache
+        uses: actions/cache@c64c572235d810460d0d6876e9c705ad5002b353
+        with:
+          path: |
+            ${{ env.pythonLocation }}\lib\site-packages
+            ${{ matrix.pip-cache-path }}
+          key: ${{ runner.os }}-pip-cache-${{ env.pyinstaller-version }}
+
+      - name: Install pip dependencies
+        run: python -m pip install pyinstaller==${{ env.pyinstaller-version }}
+
+      - name: Build binaries with PyInstaller
+        run: python -m PyInstaller --onefile ${{ env.name }}.py --name ${{ env.name }}
+
+      - name: Consolidate artifacts in a zip
+        if: startsWith(runner.os, 'Windows')
+        run: Compress-Archive dist/${{ env.name }}.exe ${{ matrix.artifacts }}
+
+      - name: Consolidate artifacts in a zip
+        if: startsWith(runner.os, 'macOS') || startsWith(runner.os, 'Linux')
+        run: |
+          mv dist/${{ env.name }} .
+          zip ${{ matrix.artifacts }} -r ${{ env.name }}
+
+      - name: Upload artifacts to workflow
+        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        with:
+          name: ${{ matrix.artifacts }}
+          path: ${{ matrix.artifacts }}
+          retention-days: 1
+
+      - name: Upload artifacts to release
+        if: needs.tag-and-release.outputs.upload_url
+        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5
+        with:
+          upload_url: ${{ needs.tag-and-release.outputs.upload_url }}
+          asset_path: ${{ matrix.artifacts }}
+          asset_name: ${{ matrix.artifacts }}
+          asset_content_type: ${{ env.artifacts-content-type }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,6 +2,8 @@
 
 import argparse
 import os
+import platform
+import sys
 from collections import defaultdict
 from collections import deque
 from pathlib import Path
@@ -21,6 +23,19 @@ try:
 except ModuleNotFoundError:
     print("SJSON python module not found! SJSON changes will be skipped!")
     print("SJSON module should be available in the same place as the importer\n")
+
+
+# if we are on MacOS and running PyInstaller executable, force working directory
+# to be the one containing the executable
+# this is a kludge around MacOS calling executables from the user home rather
+# than the current directory when double-clicked on from Finder
+# has to be done here due to the rest of the script mixing in `os.path` and
+# `pathlib` operations outside of the actual `__main__`
+if platform.system() == 'Darwin' and getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+    parent_dir = Path(sys.argv[0]).parent
+    os.chdir(parent_dir)
+    print(f"Running MacOS executable from Finder: forced working directory to {parent_dir}")
+
 
 ## Global Settings
 

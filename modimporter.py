@@ -568,8 +568,8 @@ def isedited(base):
                   return True
     return False
          
-def sortmods(base,mods):
-    codes[base] = deque(sorted(codes[base],key=lambda x: x.ep))
+def sortmods(mods):
+    return sorted(mods,key=lambda x: x.ep)
 
 def makeedit(base,mods,echo=True):
     Path(bakdir+"/"+"/".join(base.split("/")[:-1])).mkdir(parents=True, exist_ok=True)
@@ -664,7 +664,7 @@ def start():
 
     print("\nModified files for "+game+" mods:")
     for base, mods in codes.items():
-        sortmods(base,mods)
+        mods = sortmods(mods)
         makeedit(base,mods)
 
     bs = len(codes)

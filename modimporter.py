@@ -107,7 +107,7 @@ def safeget(data,key):
     if isinstance(data,xml.ElementTree):
         root = data.getroot()
         if root:
-            return root.get(k,DNE)
+            return root.get(key,DNE)
     if isinstance(data,xml.Element):
         return data.get(key,DNE)
     return DNE

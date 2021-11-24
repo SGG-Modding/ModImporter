@@ -18,7 +18,13 @@ import csv
 import xml.etree.ElementTree as xml
 
 # Logging configuration
-logging.basicConfig(format='%(message)s')
+logging.basicConfig(
+    format='%(message)s',
+    handlers=[
+        logging.FileHandler("modimporter.log.txt", mode='w'),
+        logging.StreamHandler(),
+    ],
+)
 LOGGER = logging.getLogger('modimporter')
 LOGGER.setLevel(logging.INFO)
 
@@ -48,8 +54,6 @@ if platform.system() == 'Darwin' and getattr(sys, 'frozen', False) and hasattr(s
 clean_only = False #uninstall option, ignores mod folder
 
 game_aliases = {"Resources":"Hades"} #alias for temporary mac support
-
-logging.basicConfig(filename="modimporter.log.txt",filemode='w')
 
 modsdir = "Mods"
 modsrel = ".."

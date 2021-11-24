@@ -1,6 +1,7 @@
 # Mod Importer for SuperGiant Games' Games
 
 import argparse
+import logging
 import os
 import platform
 import sys
@@ -16,13 +17,18 @@ from datetime import datetime
 import csv
 import xml.etree.ElementTree as xml
 
+# Logging configuration
+logging.basicConfig(format='%(message)s')
+LOGGER = logging.getLogger('modimporter')
+LOGGER.setLevel(logging.INFO)
+
 can_sjson = False
 try:
     import sjson
     can_sjson = True
 except ModuleNotFoundError:
-    print("SJSON python module not found! SJSON changes will be skipped!")
-    print("SJSON module should be available in the same place as the importer\n")
+    LOGGER.error("SJSON python module not found! SJSON changes will be skipped!")
+    LOGGER.error("SJSON module should be available in the same place as the importer\n")
 
 
 # if we are on MacOS and running PyInstaller executable, force working directory
@@ -34,7 +40,7 @@ except ModuleNotFoundError:
 if platform.system() == 'Darwin' and getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     parent_dir = Path(sys.argv[0]).parent
     os.chdir(parent_dir)
-    print(f"Running MacOS executable from Finder: forced working directory to {parent_dir}")
+    LOGGER.info(f"Running MacOS executable from Finder: forced working directory to {parent_dir}")
 
 
 ## Global Settings
@@ -307,7 +313,7 @@ if can_sjson:
         try:
             return sjson.loads(open(filename,'r',encoding='utf-8-sig').read())
         except sjson.ParseException as e:
-            print(repr(e))
+            LOGGER.error(repr(e))
             return DNE
 
     def writesjson(filename,content):
@@ -512,7 +518,7 @@ def loadmodfile(filename,echo=True):
         except IOError:
             return
         if echo:
-            print(filename)
+            LOGGER.info(filename)
 
         reldir = "/".join(filename.split("/")[:-1])
         ep = 100
@@ -582,7 +588,7 @@ def makeedit(base,mods,echo=True):
             copyfile(base,bakdir+"/"+base+baktype)
     if echo:
         i=0
-        print("\n"+base)
+        LOGGER.info("\n"+base)
     try:
         for mod in mods:
             if mod.mode == mode_replace:
@@ -599,7 +605,7 @@ def makeedit(base,mods,echo=True):
                 k = i+1
                 for s in mod.src.split('\n'):
                     i+=1
-                    print(" #"+str(i)+" +"*(k<i)+" "*((k>=i)+5-len(str(i)))+s)
+                    LOGGER.info(" #"+str(i)+" +"*(k<i)+" "*((k>=i)+5-len(str(i)))+s)
     except Exception as e:
         copyfile(bakdir+"/"+base+baktype,base)
         raise RuntimeError("Encountered uncaught exception while implementing mod changes") from e
@@ -630,14 +636,14 @@ def cleanup(folder=bakdir,echo=True):
     if path.find(".del") == len(path)-len(".del"):
         path = path[:-len(".del")]
         if echo:
-            print(path)
+            LOGGER.info(path)
         os.remove(path)
         os.remove(folder.path)
         return False
     if os.path.isfile(path):
         if isedited(path):
             if echo:
-                print(path)
+                LOGGER.info(path)
             copyfile(folder.path,path)
             os.remove(folder.path)
             return False
@@ -649,20 +655,20 @@ def start():
     global codes
     codes = defaultdict(deque)
 
-    print("Cleaning edits... (if there are issues validate/reinstall files)\n")
+    LOGGER.info("Cleaning edits... (if there are issues validate/reinstall files)\n")
     Path(bakdir).mkdir(parents=True, exist_ok=True)
     cleanup()
 
     if clean_only:
-        print( "\nFinished cleaning, skipping edits." )
+        LOGGER.info( "\nFinished cleaning, skipping edits." )
         return
     
-    print("\nReading mod files...\n")
+    LOGGER.info("\nReading mod files...\n")
     Path(modsdir).mkdir(parents=True, exist_ok=True)
     for mod in os.scandir(modsdir):
         loadmodfile(mod.path.replace("\\","/")+"/"+modfile)
 
-    print("\nModified files for "+game+" mods:")
+    LOGGER.info("\nModified files for "+game+" mods:")
     for base, mods in codes.items():
         mods = sortmods(mods)
         makeedit(base,mods)
@@ -670,21 +676,30 @@ def start():
     bs = len(codes)
     ms = sum(map(len,codes.values()))
 
-    print("\n"+str(bs)+" base file"+"s"*(bs!=1)+" import"+"s"*(bs==1)+" a total of "+str(ms)+" mod file"+"s"*(ms!=1)+".")
+    LOGGER.info("\n"+str(bs)+" base file"+"s"*(bs!=1)+" import"+"s"*(bs==1)+" a total of "+str(ms)+" mod file"+"s"*(ms!=1)+".")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument( '--game', '-g', choices=[game for game in default_to], help="select game mode" )
     parser.add_argument( '--clean', '-c', action='store_true', help="clean only (uninstall mods)" )
+    parser.add_argument('--verbose', '-v', action='store_true', help="verbose mode (default log level if not provided: info, '-v': debug)")
+    parser.add_argument('--quiet', '-q', action='store_true', help="quiet mode (only log errors, overrides --verbose if present)")
     args = parser.parse_args()
+    # --game
     game = args.game or game
+    # --clean
     if args.clean is not None:
         clean_only = args.clean
+    # --quiet / --verbose
+    if args.quiet:
+        LOGGER.setLevel(logging.ERROR)
+    elif args.verbose:
+        LOGGER.setLevel(logging.DEBUG)
     try:
         start()
     except Exception as e:
-        print("There was a critical error, now attempting to display the error")
-        print("(Run this program again in a terminal that does not close or check the log file if this doesn't work)")
+        LOGGER.error("There was a critical error, now attempting to display the error")
+        LOGGER.error("(Run this program again in a terminal that does not close or check the log file if this doesn't work)")
         logging.getLogger("MainExceptions").exception(e)
         input("Press any key to see the error...")
         raise RuntimeError("Encountered uncaught exception during program") from e

@@ -395,6 +395,9 @@ class modcode():
         self.key = key
         self.ep = load["ep"]
 
+    def __repr__(self) -> str:
+        return f"{self.data} {self.ep}"
+
 def strup(string):
     return string[0].upper()+string[1:]
 
@@ -670,7 +673,9 @@ def start():
 
     LOGGER.info("\nModified files for "+game+" mods:")
     for base, mods in codes.items():
+        LOGGER.debug(f"mods: {mods}")
         mods = sortmods(mods)
+        LOGGER.debug(f"sorted: {mods}")
         makeedit(base,mods)
 
     bs = len(codes)

@@ -689,6 +689,7 @@ if __name__ == '__main__':
     parser.add_argument( '--clean', '-c', action='store_true', help="clean only (uninstall mods)" )
     parser.add_argument('--verbose', '-v', action='store_true', help="verbose mode (default log level if not provided: info, '-v': debug)")
     parser.add_argument('--quiet', '-q', action='store_true', help="quiet mode (only log errors, overrides --verbose if present)")
+    parser.add_argument('--no-input', action='store_false', default=True, dest='input', help="do not prompt for input when done (default: prompt for input)")
     args = parser.parse_args()
     # --game
     game = args.game or game
@@ -706,6 +707,6 @@ if __name__ == '__main__':
         LOGGER.error("There was a critical error, now attempting to display the error")
         LOGGER.error("(Run this program again in a terminal that does not close or check the log file if this doesn't work)")
         logging.getLogger("MainExceptions").exception(e)
-        input("Press any key to see the error...")
         raise RuntimeError("Encountered uncaught exception during program") from e
-    input("Press ENTER/RETURN to end program...")
+    if args.input:
+        input("Press ENTER/RETURN to end program...")

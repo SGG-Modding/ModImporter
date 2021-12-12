@@ -20,7 +20,7 @@ jobs:
       upload_url: ${{ steps.release.outputs.upload_url }}
     steps:
       - name: Checkout files
-        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
 
       - name: Tag
         if: github.event.inputs.tag
@@ -31,7 +31,7 @@ jobs:
       - name: Create release
         if: github.event.inputs.tag
         id: release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
+        uses: actions/create-release@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
         with:
           release_name: ${{ github.event.inputs.tag }}
           tag_name: ${{ github.event.inputs.tag }}
@@ -51,7 +51,7 @@ jobs:
       sjson: sjson
     steps:
       - name: Checkout files
-        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
         with:
           ref: ${{ github.event.inputs.tag || github.sha }}
           submodules: true
@@ -62,7 +62,7 @@ jobs:
           zip ${{ env.artifacts-python }} -r ${{ env.name }}.py ${{ env.sjson }} ${{ env.license }} ${{ env.readme }}
 
       - name: Upload artifacts to workflow
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        uses: actions/upload-artifact@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
         with:
           name: ${{ env.artifacts-python }}
           path: ${{ env.artifacts-python }}
@@ -101,13 +101,13 @@ jobs:
             pyinstaller-version: "4.7"
     steps:
       - name: Checkout files
-        uses: actions/checkout@5a4ac9002d0be2fb38bd78e4b4dbde5606d7042f
+        uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579
         with:
           ref: ${{ github.event.inputs.tag || github.sha }}
           submodules: true
 
       - name: Set up Python
-        uses: actions/setup-python@dc73133d4da04e56a135ae2246682783cc7c7cb6
+        uses: actions/setup-python@f38219332975fe8f9c04cca981d674bf22aea1d3
         with:
           python-version: ${{ env.python-version }}
 
@@ -136,7 +136,7 @@ jobs:
           zip ${{ matrix.artifacts }} -r ${{ env.name }}
 
       - name: Upload artifacts to workflow
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        uses: actions/upload-artifact@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
         with:
           name: ${{ matrix.artifacts }}
           path: ${{ matrix.artifacts }}

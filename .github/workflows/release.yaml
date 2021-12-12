@@ -31,7 +31,7 @@ jobs:
       - name: Create release
         if: github.event.inputs.tag
         id: release
-        uses: actions/create-release@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
         with:
           release_name: ${{ github.event.inputs.tag }}
           tag_name: ${{ github.event.inputs.tag }}

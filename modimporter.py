@@ -118,7 +118,7 @@ def safeget(data,key):
 
 def clearDNE(data):
     if isinstance(data,OrderedDict):
-        for k,v in data.items():
+        for k,v in data.copy().items():
             if v is DNE:
                 del data[k]
                 continue
@@ -333,6 +333,8 @@ if can_sjson:
     def sjsonmap(indata,mapdata):
         if mapdata is DNE:
             return indata
+        if mapdata==reserved_delete:
+            return DNE
         if safeget(mapdata,reserved_sequence):
             S = []
             for k,v in mapdata.items():

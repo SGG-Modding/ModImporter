@@ -409,9 +409,9 @@ game = strup(gamedir.split("/")[-1])
 game = game_aliases.get(game,game)
 
 def in_directory(file,nobackup=True):
-    if file.find(".pkg") == -1:
-        if not os.path.isfile(file):
-            return False
+    ##if file.find(".pkg") == -1:
+    ##    if not os.path.isfile(file):
+    ##        return False
     file = os.path.realpath(file).replace("\\","/")
     if file == selffile:
         return False
@@ -493,6 +493,7 @@ def loadcommand(reldir,tokens,to,n,mode,**load):
                 
                 num = -1
                 for source in sources:
+                    LOGGER.info(source)
                     if valid_scan(source):
                         tpath = []
                         for file in os.scandir(source):
@@ -549,7 +550,7 @@ def loadmodfile(filename,echo=True):
                                 pass
                         else:
                             ep = default_priority
-                if startswith(tokens,kwrd_include,1):
+                elif startswith(tokens,kwrd_include,1):
                     for s in tokens[1:]:
                         path = reldir+"/"+s.replace("\"","").replace("\\","/")
                         if valid_scan(path):
@@ -569,6 +570,8 @@ def loadmodfile(filename,echo=True):
                     loadcommand(reldir,tokens[len(kwrd_csv):],to,1,mode_csv,ep=ep)
                 elif can_sjson and startswith(tokens,kwrd_sjson,1):
                     loadcommand(reldir,tokens[len(kwrd_sjson):],to,1,mode_sjson,ep=ep)
+                else:
+                    raise Exception(f"Improper command from {filename}:\n\t{line}")
 
 def isedited(base):
     if base.find(".pkg") != -1:
@@ -665,7 +668,7 @@ def start():
     cleanup()
 
     if clean_only:
-        LOGGER.info( "\nFinished cleaning, skipping edits." )
+        LOGGER.info( "Finished cleaning, skipping edits.\n" )
         return
     
     LOGGER.info("\nReading mod files...\n")
@@ -683,7 +686,7 @@ def start():
     bs = len(codes)
     ms = sum(map(len,codes.values()))
 
-    LOGGER.info("\n"+str(bs)+" base file"+"s"*(bs!=1)+" import"+"s"*(bs==1)+" a total of "+str(ms)+" mod file"+"s"*(ms!=1)+".")
+    LOGGER.info("\n"+str(bs)+" base file"+"s"*(bs!=1)+" import"+"s"*(bs==1)+" a total of "+str(ms)+" mod file"+"s"*(ms!=1)+".\n")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -707,8 +710,8 @@ if __name__ == '__main__':
         start()
     except Exception as e:
         LOGGER.error("There was a critical error, now attempting to display the error")
-        LOGGER.error("(Run this program again in a terminal that does not close or check the log file if this doesn't work)")
+        ##LOGGER.error("(Run this program again in a terminal that does not close or check the log file if this doesn't work)")
         logging.getLogger("MainExceptions").exception(e)
-        raise RuntimeError("Encountered uncaught exception during program") from e
+        ##raise RuntimeError("Encountered uncaught exception during program") from e
     if args.input:
         input("Press ENTER/RETURN to end program...")

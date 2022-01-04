@@ -347,25 +347,29 @@ if can_sjson:
                     continue
             mapdata = S
         if type(indata)==type(mapdata):
-            if isinstance(mapdata,list) and safeget(mapdata,0)==reserved_append:
+            if safeget(mapdata,0)!=reserved_append or isinstance(mapdata,OrderedDict):
+                if isinstance(mapdata,list):
+                    if safeget(mapdata,0)==reserved_delete:
+                        return DNE
+                    if safeget(mapdata,0)==reserved_replace:
+                        del mapdata[0]
+                        return mapdata
+                    indata.extend([DNE]*(len(mapdata)-len(indata)))
+                    for k,v in enumerate(mapdata):
+                        indata[k] = sjsonmap(safeget(indata,k),v)
+                elif isinstance(mapdata,dict):
+                    if safeget(mapdata,reserved_delete):
+                        return DNE
+                    if safeget(mapdata,reserved_replace):
+                        del mapdata[reserved_replace]
+                        return mapdata
+                    for k,v in mapdata.items():
+                        indata[k] = sjsonmap(safeget(indata,k),v)
+                return indata
+            elif isinstance(mapdata,list):
                 for i in range(1,len(mapdata)):
                     indata.append(mapdata[i])
-            elif isinstance(mapdata,list):
-                if safeget(mapdata,0)==reserved_replace:
-                    del mapdata[0]
-                    return mapdata
-                indata.extend([DNE]*(len(mapdata)-len(indata)))
-                for k,v in enumerate(mapdata):
-                    indata[k] = sjsonmap(safeget(indata,k),v)
-            elif isinstance(mapdata,dict):
-                if safeget(mapdata,reserved_replace):
-                    del mapdata[reserved_replace]
-                    return mapdata
-                for k,v in mapdata.items():
-                    indata[k] = sjsonmap(safeget(indata,k),v)
-            else:
-                return mapdata
-            return indata
+                return indata
         else:
             return mapdata
         return mapdata

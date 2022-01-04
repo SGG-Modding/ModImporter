@@ -586,6 +586,7 @@ def sortmods(mods):
     return sorted(mods,key=lambda x: x.ep)
 
 def makeedit(base,mods,echo=True):
+    Path("/".join(base.split("/")[:-1])).mkdir(parents=True, exist_ok=True)
     Path(bakdir+"/"+"/".join(base.split("/")[:-1])).mkdir(parents=True, exist_ok=True)
     if not os.path.exists(base):
         open(bakdir+"/"+base+baktype+".del","w").close()
@@ -645,8 +646,10 @@ def cleanup(folder=bakdir,echo=True):
         path = path[:-len(".del")]
         if echo:
             LOGGER.info(path)
-        os.remove(path)
-        os.remove(folder.path)
+        if os.path.exists(path):
+            os.remove(path)
+        if os.path.exists(folder.path):
+            os.remove(folder.path)
         return False
     if os.path.isfile(path):
         if isedited(path):

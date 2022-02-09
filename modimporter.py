@@ -95,6 +95,7 @@ reserved_sequence = "_sequence"
 reserved_append = "_append"
 reserved_replace = "_replace"
 reserved_delete = "_delete"
+reserved_search = "_search"
 
 ## Data Functionality
 
@@ -330,6 +331,22 @@ if can_sjson:
         with open(filename,'w',encoding='utf-8') as f:
             f.write(content)
 
+    def sjsonsearch(data,match):
+        def pred(dat,mat):
+            if type(dat) == type(mat):
+                try:
+                    it = iter(mat)
+                    if isinstance(mat,list):
+                        it = enumerate(mat)
+                    for k,v in it:
+                        if not pred(dat[k],v):
+                            return False
+                except TypeError:
+                    return obj == match
+                return True
+            return False
+        return filter(pred,data)
+
     def sjsonmap(indata,mapdata):
         if mapdata is DNE:
             return indata
@@ -347,10 +364,14 @@ if can_sjson:
                     continue
             mapdata = S
         if type(indata)==type(mapdata):
-            if safeget(mapdata,0)!=reserved_append or isinstance(mapdata,OrderedDict):
+            if isinstance(mapdata,OrderedDict) or safeget(mapdata,0)!=reserved_append:
                 if isinstance(mapdata,list):
-                    if safeget(mapdata,0)==reserved_delete:
-                        return DNE
+                    if safeget(mapdata,0)==reserved_search:
+                        match = mapdata[1]
+                        mapdata = mapdata[2:]
+                        for k,v in sjsonsearch(indata,match):
+                            indata[k] = sjsonmap(v,mapdata)
+                        return indata
                     if safeget(mapdata,0)==reserved_replace:
                         del mapdata[0]
                         return mapdata
@@ -358,8 +379,11 @@ if can_sjson:
                     for k,v in enumerate(mapdata):
                         indata[k] = sjsonmap(safeget(indata,k),v)
                 elif isinstance(mapdata,dict):
-                    if safeget(mapdata,reserved_delete):
-                        return DNE
+                    if match := safeget(mapdata,reserved_search):
+                        del mapdata[reserved_search]
+                        for k,v in sjsonsearch(indata,match):
+                            indata[k] = sjsonmap(v,mapdata)
+                        return indata
                     if safeget(mapdata,reserved_replace):
                         del mapdata[reserved_replace]
                         return mapdata

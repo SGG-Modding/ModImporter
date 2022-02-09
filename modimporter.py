@@ -334,16 +334,18 @@ if can_sjson:
     def sjsonsearch(data,match):
         def pred(dat,mat):
             if type(dat) == type(mat):
-                try:
-                    it = iter(mat)
-                    if isinstance(mat,list):
-                        it = enumerate(mat)
+                it = None
+                if isinstance(mat,list):
+                    it = enumerate(mat)
+                if isinstance(mat,OrderedDict):
+                    it = mat
+                if it is None:
+                    return obj == mat
+                else:
                     for k,v in it:
                         if not pred(dat[k],v):
                             return False
-                except TypeError:
-                    return obj == match
-                return True
+                    return True
             return False
         return filter(pred,data)
 

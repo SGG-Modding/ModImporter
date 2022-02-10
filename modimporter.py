@@ -331,15 +331,16 @@ if can_sjson:
         with open(filename,'w',encoding='utf-8') as f:
             f.write(content)
 
-    def sjsonsearch(indata,matdata,mapdata):
+    def sjsonsearch(indata,queries):
         def pred(dat,mat):
             it = safepairs(mat)
             if it is None:
                 return dat == mat
             else:
                 return all(pred(dat[k],v) for k,v in it)
-        for k,v in ((k,v) for k,v in safepairs(indata) if pred(v,matdata)):
-            indata[k] = sjsonmap(v,mapdata)
+        for matdata,mapdata in queries:
+            for k,v in ((k,v) for k,v in safepairs(indata) if pred(v,matdata)):
+                indata[k] = sjsonmap(v,mapdata)
         return indata
 
     def sjsonmap(indata,mapdata):
@@ -366,18 +367,14 @@ if can_sjson:
             if isinstance(mapdata,list):
                 if safeget(mapdata,0)==reserved_search:
                     search = mapdata[1]
-                    match = search[0]
-                    mapdata = search[1]
-                    return sjsonsearch(indata,match,mapdata)
+                    return sjsonsearch(indata,zip(search[::2],search[1::2]))
                 if safeget(mapdata,0)==reserved_replace:
                     del mapdata[0]
                     return mapdata
                 indata.extend([DNE]*(len(mapdata)-len(indata)))
             elif isinstance(mapdata,dict):
                 if search := safeget(mapdata,reserved_search):
-                    match = search[0]
-                    mapdata = search[1]
-                    return sjsonsearch(indata,match,mapdata)
+                    return sjsonsearch(indata,zip(search[::2],search[1::2]))
                 if safeget(mapdata,reserved_replace):
                     del mapdata[reserved_replace]
                     return mapdata

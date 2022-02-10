@@ -331,30 +331,23 @@ if can_sjson:
         with open(filename,'w',encoding='utf-8') as f:
             f.write(content)
 
-    def sjsonsearch(data,match):
+    def sjsonsearch(indata,matdata,mapdata):
         def pred(dat,mat):
-            if type(dat) == type(mat):
-                it = None
-                if isinstance(mat,list):
-                    it = enumerate(mat)
-                if isinstance(mat,OrderedDict):
-                    it = mat
-                if it is None:
-                    return obj == mat
-                else:
-                    for k,v in it:
-                        if not pred(dat[k],v):
-                            return False
-                    return True
-            return False
-        return filter(pred,data)
+            it = safepairs(mat)
+            if it is None:
+                return dat == mat
+            else:
+                return all(pred(dat[k],v) for k,v in it)
+        for k,v in ((k,v) for k,v in safepairs(indata) if pred(v,matdata)):
+            indata[k] = sjsonmap(v,mapdata)
+        return indata
 
     def sjsonmap(indata,mapdata):
         if mapdata is DNE:
             return indata
-        if mapdata==reserved_delete:
+        elif mapdata==reserved_delete:
             return DNE
-        if safeget(mapdata,reserved_sequence):
+        elif safeget(mapdata,reserved_sequence):
             S = []
             for k,v in mapdata.items():
                 try:
@@ -366,38 +359,32 @@ if can_sjson:
                     continue
             mapdata = S
         if type(indata)==type(mapdata):
-            if isinstance(mapdata,OrderedDict) or safeget(mapdata,0)!=reserved_append:
-                if isinstance(mapdata,list):
-                    if safeget(mapdata,0)==reserved_search:
-                        match = mapdata[1]
-                        mapdata = mapdata[2:]
-                        for k,v in sjsonsearch(indata,match):
-                            indata[k] = sjsonmap(v,mapdata)
-                        return indata
-                    if safeget(mapdata,0)==reserved_replace:
-                        del mapdata[0]
-                        return mapdata
-                    indata.extend([DNE]*(len(mapdata)-len(indata)))
-                    for k,v in enumerate(mapdata):
-                        indata[k] = sjsonmap(safeget(indata,k),v)
-                elif isinstance(mapdata,dict):
-                    if match := safeget(mapdata,reserved_search):
-                        del mapdata[reserved_search]
-                        for k,v in sjsonsearch(indata,match):
-                            indata[k] = sjsonmap(v,mapdata)
-                        return indata
-                    if safeget(mapdata,reserved_replace):
-                        del mapdata[reserved_replace]
-                        return mapdata
-                    for k,v in mapdata.items():
-                        indata[k] = sjsonmap(safeget(indata,k),v)
-                return indata
-            elif isinstance(mapdata,list):
+            if isinstance(mapdata,list) and safeget(mapdata,0) == reserved_append:
                 for i in range(1,len(mapdata)):
                     indata.append(mapdata[i])
                 return indata
-        else:
-            return mapdata
+            if isinstance(mapdata,list):
+                if safeget(mapdata,0)==reserved_search:
+                    search = mapdata[1]
+                    match = search[0]
+                    mapdata = search[1]
+                    return sjsonsearch(indata,match,mapdata)
+                if safeget(mapdata,0)==reserved_replace:
+                    del mapdata[0]
+                    return mapdata
+                indata.extend([DNE]*(len(mapdata)-len(indata)))
+            elif isinstance(mapdata,dict):
+                if search := safeget(mapdata,reserved_search):
+                    match = search[0]
+                    mapdata = search[1]
+                    return sjsonsearch(indata,match,mapdata)
+                if safeget(mapdata,reserved_replace):
+                    del mapdata[reserved_replace]
+                    return mapdata
+            if (it := safepairs(mapdata)) is not None:
+                for k,v in it:
+                    indata[k] = sjsonmap(safeget(indata,k),v)
+            return indata
         return mapdata
         
     def mergesjson(infile,mapfile):

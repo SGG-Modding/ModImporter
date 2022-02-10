@@ -381,7 +381,7 @@ if can_sjson:
             if (it := safepairs(mapdata)) is not None:
                 for k,v in it:
                     indata[k] = sjsonmap(safeget(indata,k),v)
-            return indata
+                return indata
         return mapdata
         
     def mergesjson(infile,mapfile):

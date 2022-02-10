@@ -117,6 +117,14 @@ def safeget(data,key):
         return data.get(key,DNE)
     return DNE
 
+def safepairs(data):
+    it = DNE
+    if isinstance(data,list):
+        it = enumerate(data)
+    if isinstance(data,OrderedDict):
+        it = data.items()
+    return it
+
 def clearDNE(data):
     if isinstance(data,OrderedDict):
         for k,v in data.copy().items():
@@ -333,15 +341,14 @@ if can_sjson:
 
     def sjsonsearch(indata,queries):
         def pred(dat,mat):
-            it = safepairs(mat)
-            if it is None:
-                return dat == mat
-            else:
+            if (it := safepairs(mat)) is not DNE:
                 return all(pred(dat[k],v) for k,v in it)
+            return dat == mat
         for matdata,mapdata in queries:
             for k,v in ((k,v) for k,v in safepairs(indata) if pred(v,matdata)):
                 indata[k] = sjsonmap(v,mapdata)
         return indata
+
 
     def sjsonmap(indata,mapdata):
         if mapdata is DNE:
@@ -378,7 +385,7 @@ if can_sjson:
                 if safeget(mapdata,reserved_replace):
                     del mapdata[reserved_replace]
                     return mapdata
-            if (it := safepairs(mapdata)) is not None:
+            if (it := safepairs(mapdata)) is not DNE:
                 for k,v in it:
                     indata[k] = sjsonmap(safeget(indata,k),v)
                 return indata

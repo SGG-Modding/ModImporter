@@ -95,6 +95,7 @@ reserved_sequence = "_sequence"
 reserved_append = "_append"
 reserved_replace = "_replace"
 reserved_delete = "_delete"
+reserved_search = "_search"
 
 ## Data Functionality
 
@@ -115,6 +116,14 @@ def safeget(data,key):
     if isinstance(data,xml.Element):
         return data.get(key,DNE)
     return DNE
+
+def safepairs(data):
+    it = DNE
+    if isinstance(data,list):
+        it = enumerate(data)
+    if isinstance(data,OrderedDict):
+        it = data.items()
+    return it
 
 def clearDNE(data):
     if isinstance(data,OrderedDict):
@@ -330,12 +339,23 @@ if can_sjson:
         with open(filename,'w',encoding='utf-8') as f:
             f.write(content)
 
+    def sjsonsearch(indata,queries):
+        def pred(dat,mat):
+            if (it := safepairs(mat)) is not DNE:
+                return all(pred(dat[k],v) for k,v in it)
+            return dat == mat
+        for matdata,mapdata in queries:
+            for k,v in ((k,v) for k,v in safepairs(indata) if pred(v,matdata)):
+                indata[k] = sjsonmap(v,mapdata)
+        return indata
+
+
     def sjsonmap(indata,mapdata):
         if mapdata is DNE:
             return indata
-        if mapdata==reserved_delete:
+        elif mapdata==reserved_delete:
             return DNE
-        if safeget(mapdata,reserved_sequence):
+        elif safeget(mapdata,reserved_sequence):
             S = []
             for k,v in mapdata.items():
                 try:
@@ -347,31 +367,28 @@ if can_sjson:
                     continue
             mapdata = S
         if type(indata)==type(mapdata):
-            if safeget(mapdata,0)!=reserved_append or isinstance(mapdata,OrderedDict):
-                if isinstance(mapdata,list):
-                    if safeget(mapdata,0)==reserved_delete:
-                        return DNE
-                    if safeget(mapdata,0)==reserved_replace:
-                        del mapdata[0]
-                        return mapdata
-                    indata.extend([DNE]*(len(mapdata)-len(indata)))
-                    for k,v in enumerate(mapdata):
-                        indata[k] = sjsonmap(safeget(indata,k),v)
-                elif isinstance(mapdata,dict):
-                    if safeget(mapdata,reserved_delete):
-                        return DNE
-                    if safeget(mapdata,reserved_replace):
-                        del mapdata[reserved_replace]
-                        return mapdata
-                    for k,v in mapdata.items():
-                        indata[k] = sjsonmap(safeget(indata,k),v)
-                return indata
-            elif isinstance(mapdata,list):
+            if isinstance(mapdata,list) and safeget(mapdata,0) == reserved_append:
                 for i in range(1,len(mapdata)):
                     indata.append(mapdata[i])
                 return indata
-        else:
-            return mapdata
+            if isinstance(mapdata,list):
+                if safeget(mapdata,0)==reserved_search:
+                    search = mapdata[1]
+                    return sjsonsearch(indata,zip(search[::2],search[1::2]))
+                if safeget(mapdata,0)==reserved_replace:
+                    del mapdata[0]
+                    return mapdata
+                indata.extend([DNE]*(len(mapdata)-len(indata)))
+            elif isinstance(mapdata,dict):
+                if search := safeget(mapdata,reserved_search):
+                    return sjsonsearch(indata,zip(search[::2],search[1::2]))
+                if safeget(mapdata,reserved_replace):
+                    del mapdata[reserved_replace]
+                    return mapdata
+            if (it := safepairs(mapdata)) is not DNE:
+                for k,v in it:
+                    indata[k] = sjsonmap(safeget(indata,k),v)
+                return indata
         return mapdata
         
     def mergesjson(infile,mapfile):
@@ -435,36 +452,42 @@ def splitlines(body):
     lines = []
     li = -1
     mlcom = False
-    def gp(group,lines,li,mlcom,even):
+    def gp(group,lines,li,mlcom,even,lcom):
         if mlcom:
             tgroup = group.split(mlcom_end,1)
             if len(tgroup)==1: #still commented, carry on
                 even = not even
-                return (lines,li,mlcom,even)
+                return (lines,li,mlcom,even,lcom)
             else: #comment ends, if a quote, even is disrupted
                 even = False
                 mlcom = False
                 group = tgroup[1]
-        if even:
-            lines[li]+="\""+group+"\""
-        else:
-            tgroup = group.split(comment,1)
-            tline = tgroup[0].split(mlcom_start,1)
-            tgroup = tline[0].split(linebreak)
-            lines[li]+=tgroup[0] #uncommented line
-            for g in tgroup[1:]: #new uncommented lines
-                lines.append(g)
-                li+=1
-            if len(tline)>1: #comment begins
-                mlcom = True
-                lines,li,mlcom,even = gp(tline[1],lines,li,mlcom,even)
-        return (lines,li,mlcom,even)
+        if not mlcom:
+            if even:
+                lines[li]+="\""+group+"\""
+            else:
+                tgroup = group.split(comment,1)
+                if len(tgroup) == 2:
+                    lcom = True
+                tline = tgroup[0].split(mlcom_start,1)
+                tgroup = tline[0].split(linebreak)
+                lines[li]+=tgroup[0] #uncommented line
+                for g in tgroup[1:]: #new uncommented lines
+                    lines.append(g)
+                    li+=1
+                if len(tline)>1: #comment begins
+                    mlcom = True
+                    lines,li,mlcom,even,lcom = gp(tline[1],lines,li,mlcom,even,lcom)
+        return (lines,li,mlcom,even,lcom)
     for groups in glines:
+        lcom = False
         even = False
         li += 1
         lines.append("")
         for group in groups:
-            lines,li,mlcom,even = gp(group,lines,li,mlcom,even)
+            lines,li,mlcom,even,lcom = gp(group,lines,li,mlcom,even,lcom)
+            if lcom:
+                break
             even = not even
     return lines
 

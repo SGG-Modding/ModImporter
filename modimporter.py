@@ -452,36 +452,42 @@ def splitlines(body):
     lines = []
     li = -1
     mlcom = False
-    def gp(group,lines,li,mlcom,even):
+    def gp(group,lines,li,mlcom,even,lcom):
         if mlcom:
             tgroup = group.split(mlcom_end,1)
             if len(tgroup)==1: #still commented, carry on
                 even = not even
-                return (lines,li,mlcom,even)
+                return (lines,li,mlcom,even,lcom)
             else: #comment ends, if a quote, even is disrupted
                 even = False
                 mlcom = False
                 group = tgroup[1]
-        if even:
-            lines[li]+="\""+group+"\""
-        else:
-            tgroup = group.split(comment,1)
-            tline = tgroup[0].split(mlcom_start,1)
-            tgroup = tline[0].split(linebreak)
-            lines[li]+=tgroup[0] #uncommented line
-            for g in tgroup[1:]: #new uncommented lines
-                lines.append(g)
-                li+=1
-            if len(tline)>1: #comment begins
-                mlcom = True
-                lines,li,mlcom,even = gp(tline[1],lines,li,mlcom,even)
-        return (lines,li,mlcom,even)
+        if not mlcom:
+            if even:
+                lines[li]+="\""+group+"\""
+            else:
+                tgroup = group.split(comment,1)
+                if len(tgroup) == 2:
+                    lcom = True
+                tline = tgroup[0].split(mlcom_start,1)
+                tgroup = tline[0].split(linebreak)
+                lines[li]+=tgroup[0] #uncommented line
+                for g in tgroup[1:]: #new uncommented lines
+                    lines.append(g)
+                    li+=1
+                if len(tline)>1: #comment begins
+                    mlcom = True
+                    lines,li,mlcom,even,lcom = gp(tline[1],lines,li,mlcom,even,lcom)
+        return (lines,li,mlcom,even,lcom)
     for groups in glines:
+        lcom = False
         even = False
         li += 1
         lines.append("")
         for group in groups:
-            lines,li,mlcom,even = gp(group,lines,li,mlcom,even)
+            lines,li,mlcom,even,lcom = gp(group,lines,li,mlcom,even,lcom)
+            if lcom:
+                break
             even = not even
     return lines
 

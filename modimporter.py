@@ -602,7 +602,7 @@ def loadmodfile(filename,echo=True):
                     raise Exception(f"Improper command from {filename}:\n\t{line}")
 
 def isedited(base):
-    if base.find(".pkg") != -1:
+    if not (".lua" in base or ".xml" in base or ".sjson" in base or ".csv" in base):
         return True
     with open(base,'r',encoding='utf-8-sig') as basefile:
         for line in basefile:

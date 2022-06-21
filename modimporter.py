@@ -578,6 +578,16 @@ def loadmodfile(filename,echo=True):
                                 pass
                         else:
                             ep = default_priority
+                elif startswith(tokens,kwrd_priority,0):
+                    n = len(kwrd_priority)
+                    if tokens[:n] == kwrd_priority:
+                        if len(tokens)>n:
+                            try:
+                                ep = int(tokens[n])
+                            except ValueError:
+                                pass
+                        else:
+                            ep = default_priority
                 elif startswith(tokens,kwrd_include,1):
                     for s in tokens[1:]:
                         path = reldir+"/"+s.replace("\"","").replace("\\","/")

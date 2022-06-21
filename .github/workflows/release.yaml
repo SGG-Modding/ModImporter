@@ -90,7 +90,7 @@ jobs:
           - os: windows-latest
             pip-cache-path: ~\AppData\Local\pip\Cache
             artifacts: modimporter-windows.zip
-            pyinstaller-version: "4.0"
+            pyinstaller-version: "4.4"
           - os: macos-latest
             pip-cache-path: ~/Library/Caches/pip
             artifacts: modimporter-macos.zip

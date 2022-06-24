@@ -629,10 +629,11 @@ def makeedit(base,mods,echo=True):
     if not os.path.exists(base):
         open(bakdir+"/"+base+baktype+".del","w").close()
     else:
-        if isedited(base) and in_directory(bakdir+"/"+base+baktype,False):
-            copyfile(bakdir+"/"+base+baktype,base)
+        bakpath = bakdir+"/"+base+baktype
+        if isedited(base) and in_directory(bakpath,False) and os.path.exists(bakpath):
+            copyfile(bakpath,base)
         else:
-            copyfile(base,bakdir+"/"+base+baktype)
+            copyfile(base,bakpath)
     if echo:
         i=0
         LOGGER.info("\n"+base)

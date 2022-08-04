@@ -750,6 +750,16 @@ if __name__ == '__main__':
         LOGGER.setLevel(logging.DEBUG)
     try:
         start()
+    except PermissionError as e:
+        LOGGER.error(e)
+        msg = """
+[Recommended solution]
+Right-click on Hades directory > Properties > Uncheck "Read-only" > Apply > re-run `modimporter`.
+
+[If it does not work]
+Re-run `modimporter` as administrator.
+"""
+        LOGGER.error(msg)
     except Exception as e:
         LOGGER.error("There was a critical error, now attempting to display the error")
         ##LOGGER.error("(Run this program again in a terminal that does not close or check the log file if this doesn't work)")

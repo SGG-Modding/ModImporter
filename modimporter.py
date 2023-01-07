@@ -17,6 +17,8 @@ from datetime import datetime
 import csv
 import xml.etree.ElementTree as xml
 
+import json
+
 # Logging configuration
 logging.basicConfig(
     format='%(message)s',
@@ -28,6 +30,13 @@ logging.basicConfig(
 LOGGER = logging.getLogger('modimporter')
 LOGGER.setLevel(logging.INFO)
 
+can_mapper = False
+try:
+    import mapper
+    can_mapper = True
+except ModuleNotFoundError:
+    LOGGER.error("Mapper python module not found! Map changes will be skipped!")
+    LOGGER.error("Mapper module should be available in the same place as the importer\n")
 can_sjson = False
 try:
     import sjson
@@ -75,6 +84,7 @@ modified_lua = "-- "+modified+" "
 modified_xml = "<!-- "+modified+" -->"
 modified_sjson = "/* "+modified+" */"
 modified_csv = modified
+modified_map = modified
 
 default_to = {"Hades":["Scripts/RoomManager.lua"],
             "Pyre":["Scripts/Campaign.lua","Scripts/MPScripts.lua"],
@@ -91,6 +101,7 @@ kwrd_xml = ["XML"]
 kwrd_sjson = ["SJSON"]
 kwrd_replace = ["Replace"]
 kwrd_csv = ["CSV"]
+kwrd_map = ["Map"]
 
 reserved_sequence = "_sequence"
 reserved_append = "_append"
@@ -319,10 +330,96 @@ def mergexml(infile,mapfile):
     indata = xmlmap(indata,mapdata)
     writexml(infile,indata,start)
 
+
+### Map Binaries mapping
+
+if can_mapper:
+    def cachemapchange(cache, mapfile):
+        map_json = []
+        with open(mapfile, "r") as f:
+            map_json = json.load(f)
+            
+        if reserved_append in map_json:
+            if reserved_append not in cache:
+                cache[reserved_append] = []
+            
+            for json_dict in  map_json[reserved_append]:
+                cache[reserved_append].append(json_dict)
+
+        if reserved_delete in map_json:
+            if reserved_delete not in cache:
+                cache[reserved_delete] = []
+            
+            #merge delete values into the cache[reserved_delete]
+            for id in  map_json[reserved_delete]:
+                if id not in cache[reserved_delete]:
+                    cache[reserved_delete].append(id)
+
+        if reserved_replace in map_json:
+            if reserved_replace not in cache:
+                cache[reserved_replace] = {}
+            
+            #merge replace values into the cache[reserved_replace]
+            for json_dict in  map_json[reserved_replace]:
+                id = json_dict["Id"]
+
+                if not id in cache[reserved_replace]:
+                    cache[reserved_replace][id] = {}
+
+                for key in json_dict:
+                    if key == "Id":
+                        continue
+                    value = json_dict[key]
+
+                    cache[reserved_replace][id][key] = value
+
+    def findjsonindex(id, json):
+        count = 0
+        for json_dict in json:
+            if json_dict["Id"] == id:
+                return count
+            count = count + 1
+        
+        return -1
+
+    def changemap(infile, mapchanges):
+        in_json = mapper.DecodeBinaries(infile)
+        
+        if reserved_append in mapchanges:
+            for json_dict in mapchanges[reserved_append]:
+                    print(json_dict)
+                    in_json.append(json_dict)
+
+        if reserved_delete in mapchanges:
+            for id in mapchanges[reserved_delete]:
+                json_id = findjsonindex(id, in_json)
+                if json_id >= 0:
+                    print(len(in_json))
+                    del in_json[json_id] 
+                    print(len(in_json))
+
+        if reserved_replace in mapchanges:
+            for id in mapchanges[reserved_replace]:
+                changes = mapchanges[reserved_replace][id]
+                
+                json_id = findjsonindex(id, in_json)
+
+                if json_id == -1:
+                    LOGGER.error("Cannot find", id, "in map file", infile, "when trying to replace values")
+                for key in changes:
+                    value = changes[key]
+
+                    in_json[json_id][key] = value
+                id = ""
+
+        map_binaries = mapper.EncodeBinaries(in_json)
+
+        with open(infile, "wb") as f:
+            f.write(map_binaries) 
+
 ### SJSON mapping
 
 if can_sjson:
-    
     def readsjson(filename):
         try:
             return sjson.loads(open(filename,'r',encoding='utf-8-sig').read())
@@ -410,6 +507,7 @@ mode_xml = 3
 mode_sjson = 4
 mode_replace = 5
 mode_csv = 6
+mode_map = 7
 
 class modcode():
     def __init__(self,src,data,mode,key,**load):
@@ -558,7 +656,7 @@ def loadmodfile(filename,echo=True):
         ep = 100
         to = default_to[game]
         
-        with file:    
+        with file:
             for line in splitlines(file.read()):
                 tokens = tokenise(line) 
                 if len(tokens)==0:
@@ -608,6 +706,8 @@ def loadmodfile(filename,echo=True):
                     loadcommand(reldir,tokens[len(kwrd_csv):],to,1,mode_csv,ep=ep)
                 elif can_sjson and startswith(tokens,kwrd_sjson,1):
                     loadcommand(reldir,tokens[len(kwrd_sjson):],to,1,mode_sjson,ep=ep)
+                elif can_mapper and startswith(tokens, kwrd_map,1):
+                    loadcommand(reldir, tokens[len(kwrd_map):],to,1,mode_map,ep=ep)
                 else:
                     raise Exception(f"Improper command from {filename}:\n\t{line}")
 
@@ -638,6 +738,7 @@ def makeedit(base,mods,echo=True):
         i=0
         LOGGER.info("\n"+base)
     try:
+        cached_map_changes = {}
         for mod in mods:
             if mod.mode == mode_replace:
                 copyfile(mod.data[0],base)
@@ -649,11 +750,17 @@ def makeedit(base,mods,echo=True):
                 mergexml(base,mod.data[0])
             elif mod.mode == mode_sjson:
                 mergesjson(base,mod.data[0])
+            elif mod.mode == mode_map:
+                cachemapchange(cached_map_changes, mod.data[0])
+                # mergemap(base,)
             if echo:
                 k = i+1
                 for s in mod.src.split('\n'):
                     i+=1
                     LOGGER.info(" #"+str(i)+" +"*(k<i)+" "*((k>=i)+5-len(str(i)))+s)
+        
+        if len(cached_map_changes) > 0:
+            changemap(base, cached_map_changes)
     except Exception as e:
         copyfile(bakdir+"/"+base+baktype,base)
         raise RuntimeError("Encountered uncaught exception while implementing mod changes") from e
@@ -667,6 +774,8 @@ def makeedit(base,mods,echo=True):
         modifiedstr = "\n"+modified_sjson
     elif mods[0].mode == mode_csv:
          modifiedstr = "\n"+modified_csv
+    elif mods[0].mode == mode_map:
+        modifiedstr = modified_map
     with open(base,'a',encoding='utf-8') as basefile:
         basefile.write(modifiedstr.replace(modified,modified+modified_modrep+str(datetime.now())))
 

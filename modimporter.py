@@ -387,16 +387,13 @@ if can_mapper:
         
         if reserved_append in mapchanges:
             for json_dict in mapchanges[reserved_append]:
-                    print(json_dict)
                     in_json.append(json_dict)
 
         if reserved_delete in mapchanges:
             for id in mapchanges[reserved_delete]:
                 json_id = findjsonindex(id, in_json)
                 if json_id >= 0:
-                    print(len(in_json))
                     del in_json[json_id] 
-                    print(len(in_json))
 
         if reserved_replace in mapchanges:
             for id in mapchanges[reserved_replace]:

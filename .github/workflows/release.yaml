@@ -46,9 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       artifacts-python: modimporter-python.zip
-      license: LICENSE
-      readme: README.md
-      sjson: sjson
+      files-bundled: "sjson mapper LICENSE README.md"
     steps:
       - name: Checkout files
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
@@ -58,8 +56,8 @@ jobs:
 
       - name: Consolidate Python artifacts in a zip
         run: |
-          rm -r ${{ env.sjson }}/.git
-          zip ${{ env.artifacts-python }} -r ${{ env.name }}.py ${{ env.sjson }} ${{ env.license }} ${{ env.readme }}
+          rm -r sjson/.git
+          zip ${{ env.artifacts-python }} -r ${{ env.name }}.py ${{ env.files-bundled }}
 
       - name: Upload artifacts to workflow
         uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8

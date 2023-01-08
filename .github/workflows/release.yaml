@@ -85,7 +85,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest, ubuntu-20.04]
         include:
           - os: windows-latest
             pip-cache-path: ~\AppData\Local\pip\Cache
@@ -95,7 +95,7 @@ jobs:
             pip-cache-path: ~/Library/Caches/pip
             artifacts: modimporter-macos.zip
             pyinstaller-version: "4.7"
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             pip-cache-path: ~/.cache/pip
             artifacts: modimporter-linux.zip
             pyinstaller-version: "4.7"

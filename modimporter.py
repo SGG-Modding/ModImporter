@@ -63,7 +63,8 @@ if platform.system() == 'Darwin' and getattr(sys, 'frozen', False) and hasattr(s
 clean_only = False #uninstall option, ignores mod folder
 
 game_aliases = {"Resources":"Hades", #alias for temporary mac support
-                "Content":"Hades"}  #alias for temporary windows store support
+                "Content":"Hades", #alias for temporary windows store support
+                "romfs":"Hades"}  #alias for temporary nintendo switch support
 
 modsdir = "Mods"
 modsrel = ".."

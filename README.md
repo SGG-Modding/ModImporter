@@ -1,40 +1,41 @@
 # Mod Importer
 
-For SuperGiantGames's games (To be replaced by SGGMI)
+Defines and executes a [format](https://github.com/SGG-Modding/sgg-mod-format/wiki/Format-Specification) for modifying the data files of SuperGiant Games' games.
 
-https://www.nexusmods.com/hades/mods/26
+For Hades II, it imports lua scripts, merges sjson edits, and performs file replacement.
 
-## Development
+If you have any questions you can join the [url=https://discordapp.com/invite/KuMbyrN]Hades Modding Discord[/url].
 
-### Release workflow
+## Install
 
-New releases can be created from GitHub Actions using the release workflow
-available [here](https://github.com/SGG-Modding/sgg-mod-modimporter/actions/workflows/release.yaml).
-
-The release workflow takes a tag / release name as input parameter to tag the
-repository, create a new release, build binaries, and upload them to the
-release.
-
-If the tag / release name is omitted and left blank, the workflow will run in
-dry-run mode (no tag / release, only binaries build) for testing purposes.
-
-### Build binaries locally
-
-- Install [PyInstaller](https://pypi.org/project/pyinstaller/):
-
-```bat
-python -m pip install pyinstaller==4.0
+### Windows
+- Download [modimporter-windows.zip](https://github.com/SGG-Modding/sgg-mod-modimporter/releases/latest/download/modimporter-windows.zip).
+- Extract the archive: you should get a `modimporter.exe` executable.
+- Move `modimporter.exe` into the `Content` directory of your game files:
+    - Steam: *Library* > Right-click on ﻿Hades II > *Manage* > *Browse local files* > `Content`
+    - ﻿Epic Games: *N/A* (not released yet)
+    - Microsoft Store: *N/A* (not released yet)
+- Create a new directory named `Mods` (if there is not already one), then put any mods you like in it (for example: `ModUtil`).
+    - Each mod must have its own directory and a `modfile.txt`. *If a mod does not have that, it is not compatible.* The folder structure should look something like:
 ```
-
-> Note that we use version 4.0 instead of the latest version to avoid getting
-> flagged by too many antivirus solutions due to PyInstaller's
-> pre-compiled bootloader. Older versions are less susceptible to this as AV
-> solutions had more time to properly recognize and whitelist them, in particular
-> from Microsoft antivirus (which is the single most important one not to get
-> flagged by).
-
-- Build binaries:
-
-```bat
-python -m PyInstaller --onefile modimporter.py --name modimporter
+Content/
+├── Audio/
+├── ...
+├── modimporter.exe
+└── Mods/
+    ├── ModUtil/
+    │   ├── ...
+    │   └── modfile.txt
+    └── AnotherMod/
+       ├── ...
+        └── modfile.txt
 ```
+- Run `modimporter.exe` by double-clicking on it.
+- *Important:* `modimporter.exe` must be run again everytime you add / remove mods in `Content/Mods`, and also every time the game is updated.
+
+### macOS
+- Hades II has not been released in any form for macOS yet.
+
+## More documentation
+[Github Wiki: The Mod Importer](https://github.com/SGG-Modding/sgg-mod-format/wiki/The-Mod-Importer)
+[Github Wiki: Installing Mods](https://github.com/SGG-Modding/sgg-mod-format/wiki/Installing-Mods-%7C-The-Mods-Folder)

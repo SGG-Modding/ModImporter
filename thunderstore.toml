@@ -4,7 +4,7 @@ schemaVersion = "0.0.1"
 [package]
 namespace = "SGG_Modding"
 name = "ModImporter"
-versionNumber = "1.6.0"
+versionNumber = "1.6.1"
 description = "Defines and executes a format for modifying the data files of SuperGiant Games' games."
 websiteUrl = "https://github.com/SGG-Modding/ModImporter"
 containsNsfwContent = false

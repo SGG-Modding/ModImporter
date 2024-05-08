@@ -89,6 +89,7 @@ modified_map = modified
 default_to = {"Hades":["Scripts/RoomManager.lua"],
             "Hades II Technical Test":["Scripts/RoomLogic.lua"],
             "Hades II":["Scripts/RoomLogic.lua"],
+            "Hades2":["Scripts/RoomLogic.lua"],
             "Pyre":["Scripts/Campaign.lua","Scripts/MPScripts.lua"],
             "Transistor":["Scripts/AllCampaignScripts.txt"]}
 default_priority = 100
